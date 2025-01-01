@@ -75,7 +75,7 @@ class MultiprocessingLoggerApp(QMainWindow):
 
         self.queue = multiprocessing.Queue()
         self.logging_process = None
-        self.db_name = "multiprocessing_datalog_bd.db"
+        self.db_name = "multiprocessing_logger.db"
 
         # Элементы интерфейса
         self.label_status = QLabel("Логирование: выключено", self)
