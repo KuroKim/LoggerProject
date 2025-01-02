@@ -11,6 +11,12 @@ from PyQt5.QtCore import QTimer
 # Настройка базы данных
 # Создаёт таблицу для хранения метрик производительности, если её ещё нет
 def setup_database(db_name):
+    """
+    Создает таблицу для хранения данных о производительности, если она еще не существует.
+
+    Аргументы:
+        db_name (str): Имя файла базы данных SQLite.
+    """
     conn = sqlite3.connect(db_name)
     cursor = conn.cursor()
     cursor.execute(
@@ -20,7 +26,8 @@ def setup_database(db_name):
             timestamp TEXT,
             cpu_usage REAL,
             memory_usage REAL,
-            gpu_usage TEXT
+            gpu_usage TEXT,
+            elapsed_time REAL
         )
         """
     )
@@ -28,13 +35,24 @@ def setup_database(db_name):
     conn.close()
 
 # Добавляет данные о производительности в базу данных SQLite
-def log_to_database(db_name, cpu_usage, memory_usage, gpu_usage, commit=False):
+def log_to_database(db_name, cpu_usage, memory_usage, gpu_usage, elapsed_time, commit=False):
+    """
+    Записывает данные о производительности в базу данных.
+
+    Аргументы:
+        db_name (str): Имя файла базы данных SQLite.
+        cpu_usage (float): Загрузка процессора в процентах.
+        memory_usage (float): Использование оперативной памяти в процентах.
+        gpu_usage (str): Информация о загрузке GPU.
+        elapsed_time (float): Время выполнения цикла в секундах.
+        commit (bool): Указывает, следует ли зафиксировать изменения в базе данных.
+    """
     conn = sqlite3.connect(db_name)
     cursor = conn.cursor()
     timestamp = datetime.now().isoformat()
     cursor.execute(
-        "INSERT INTO performance (timestamp, cpu_usage, memory_usage, gpu_usage) VALUES (?, ?, ?, ?)",
-        (timestamp, cpu_usage, memory_usage, str(gpu_usage)),
+        "INSERT INTO performance (timestamp, cpu_usage, memory_usage, gpu_usage, elapsed_time) VALUES (?, ?, ?, ?, ?)",
+        (timestamp, cpu_usage, memory_usage, str(gpu_usage), elapsed_time),
     )
     if commit:
         conn.commit()
@@ -46,23 +64,31 @@ def log_to_database(db_name, cpu_usage, memory_usage, gpu_usage, commit=False):
 def collect_performance_data(queue, db_name, stop_event):
     setup_database(db_name)
     while not stop_event.is_set():
+        start_time = datetime.now()  # Начало измерения времени
+
         cpu_usage = psutil.cpu_percent(interval=1)
         memory_usage = psutil.virtual_memory().percent
         gpus = GPUtil.getGPUs()
         gpu_usage = [(gpu.name, gpu.load * 100) for gpu in gpus] if gpus else "ГП не найден"
+
+        end_time = datetime.now()  # Конец измерения времени
+        elapsed_time = (end_time - start_time).total_seconds()  # Время выполнения одного цикла
 
         data = {
             "timestamp": datetime.now().isoformat(),
             "cpu_usage": cpu_usage,
             "memory_usage": memory_usage,
             "gpu_usage": gpu_usage,
+            "cycle_time": elapsed_time,
         }
 
         # Добавление данных в очередь
         queue.put(data)
 
         # Запись в базу данных
-        log_to_database(db_name, cpu_usage, memory_usage, gpu_usage, commit=True)
+        log_to_database(db_name, cpu_usage, memory_usage, gpu_usage, elapsed_time, commit=True)
+
+        print(f"Время выполнения цикла: {elapsed_time:.4f} секунд")
 
 
 # Основное приложение

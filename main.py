@@ -8,9 +8,6 @@ import plotly.io as pio
 # Создаём Flask-приложение
 app = Flask(__name__)
 
-# Устанавливаем секретный ключ для использования flash-сообщений (для уведомлений на странице)
-# app.secret_key = "your_secret_key"
-
 # Папка для загрузки файлов
 UPLOAD_FOLDER = "uploads"
 
@@ -71,7 +68,7 @@ def upload_file():
 def view_data(filename):
     """
     Загружает данные из выбранного файла базы данных (.db),
-    извлекает таблицу "data" и отображает её содержимое на веб-странице вместе с графиками.
+    извлекает таблицу "performance" и отображает её содержимое на веб-странице вместе с графиками.
     """
     # Формируем полный путь к загруженному файлу
     file_path = os.path.join(app.config["UPLOAD_FOLDER"], filename)
@@ -93,16 +90,18 @@ def view_data(filename):
         conn.close()  # Закрываем соединение с базой данных
 
         # Извлекаем данные для построения графиков
-        timestamps = [row[0] for row in rows]  # Столбец с временными метками
-        cpu_usage = [row[1] for row in rows]  # Столбец с загрузкой CPU
-        memory_usage = [row[2] for row in rows]  # Столбец с загрузкой памяти
-        gpu_usage = [row[3] for row in rows]  # Столбец с загрузкой GPU
+        timestamps = [row[1] for row in rows]  # Столбец с временными метками
+        cpu_usage = [row[2] for row in rows]  # Столбец с загрузкой CPU
+        memory_usage = [row[3] for row in rows]  # Столбец с загрузкой памяти
+        gpu_usage = [row[4] for row in rows]  # Столбец с загрузкой GPU
+        elapsed_time = [row[5] for row in rows]
 
         # Создаём интерактивные графики с использованием Plotly
         graphs = {
             "cpu": create_graph(timestamps, cpu_usage, "Загрузка CPU (%)", "Время", "Загрузка (%)"),
             "memory": create_graph(timestamps, memory_usage, "Загрузка памяти (%)", "Время", "Загрузка (%)"),
             "gpu": create_graph(timestamps, gpu_usage, "Загрузка GPU (%)", "Время", "Загрузка (%)"),
+            "elapsed_time": create_graph(timestamps, elapsed_time, "Время выполнения (сек.)", "Время", "Время (сек.)"),
         }
 
         # Формируем данные для передачи в шаблон

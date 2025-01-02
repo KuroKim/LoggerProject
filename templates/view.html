@@ -50,6 +50,10 @@
             <h3>Загрузка GPU</h3>
             <div>{{ data.graphs.gpu|safe }}</div>
         </div>
+        <div class="mt-4">
+            <h3>Время выполнения</h3>
+            <div>{{ data.graphs.elapsed_time|safe }}</div>
+        </div>
         <a href="{{ url_for('upload_file') }}" class="btn btn-primary mt-4 w-100">Загрузить другой файл</a>
     </div>
 </body>
